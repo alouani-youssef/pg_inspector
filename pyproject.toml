@@ -23,6 +23,7 @@ dependencies = [
 
 [project.scripts]
 start = "src.main:main"
+test = "src.testing:main"
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.13.0"]
@@ -46,3 +47,4 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
