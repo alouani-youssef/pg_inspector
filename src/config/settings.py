@@ -19,6 +19,13 @@ class Settings(BaseSettings):
 
     # Auth: clients must send this key to reach /mcp (the server refuses to start without it).
     API_KEY: SecretStr = SecretStr("")
+    PUBLIC_URL: str = Field(
+        default="",
+        description=(
+            "Externally reachable base URL (e.g. https://inspector.example.com), used in OAuth "
+            "resource metadata. Empty derives it from each request's scheme and Host."
+        ),
+    )
 
     # Database connection
     DATABASE_HOST: str = "127.0.0.1"

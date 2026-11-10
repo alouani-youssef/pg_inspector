@@ -10,8 +10,11 @@ Clients send the key as `Authorization: Bearer <key>` or `X-API-Key: <key>`.
 import hmac
 
 from starlette.datastructures import Headers
+from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
+
+from src.auth.resource_metadata import resource_metadata_url
 
 MIN_API_KEY_LENGTH = 16
 
@@ -45,11 +48,16 @@ class ApiKeyMiddleware:
     """Reject requests to the protected path unless they carry the expected API key."""
 
     def __init__(
-        self, app: ASGIApp, api_key: str, protected_path: str = "/mcp"
+        self,
+        app: ASGIApp,
+        api_key: str,
+        protected_path: str = "/mcp",
+        public_url: str = "",
     ) -> None:
         self.app = app
         self._expected = validate_api_key(api_key).encode()
         self._path = protected_path.rstrip("/")
+        self._public_url = public_url
 
     def _is_protected(self, path: str) -> bool:
         return path == self._path or path.startswith(self._path + "/")
@@ -61,18 +69,19 @@ class ApiKeyMiddleware:
 
         received = extract_api_key(Headers(scope=scope))
         if received is None:
-            await self._unauthorized("Missing API key")(scope, receive, send)
+            await self._unauthorized(scope, "Missing API key")(scope, receive, send)
             return
         if not hmac.compare_digest(received.encode(), self._expected):
-            await self._unauthorized("Invalid API key")(scope, receive, send)
+            await self._unauthorized(scope, "Invalid API key")(scope, receive, send)
             return
 
         await self.app(scope, receive, send)
 
-    @staticmethod
-    def _unauthorized(message: str) -> JSONResponse:
+    def _unauthorized(self, scope: Scope, message: str) -> JSONResponse:
+        base_url = self._public_url or str(Request(scope).base_url)
+        challenge = f'Bearer resource_metadata="{resource_metadata_url(base_url)}"'
         return JSONResponse(
             {"error": {"status": 401, "message": message}},
             status_code=401,
-            headers={"WWW-Authenticate": "Bearer"},
+            headers={"WWW-Authenticate": challenge},
         )

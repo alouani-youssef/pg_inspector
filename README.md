@@ -19,7 +19,18 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 Clients send it as `Authorization: Bearer <key>` (or `X-API-Key: <key>`). A missing or wrong
-key gets `401` with `{"error": {"status": 401, "message": "..."}}`.
+key gets `401` with `{"error": {"status": 401, "message": "..."}}` and a
+`WWW-Authenticate: Bearer resource_metadata="..."` header.
+
+OAuth Protected Resource Metadata ([RFC 9728](https://datatracker.ietf.org/doc/html/rfc9728))
+for `/mcp` is published (no key needed) at:
+
+- `/.well-known/oauth-protected-resource`
+- `/.well-known/oauth-protected-resource/mcp`
+
+No authorization server is advertised: the bearer token is the static API key. Set
+`PUBLIC_URL` (e.g. `https://inspector.example.com`) when running behind a proxy; otherwise
+URLs are derived from each request's scheme and `Host`.
 
 ## Running tests
 

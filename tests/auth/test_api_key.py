@@ -23,6 +23,10 @@ async def request(
         "type": "http",
         "method": "POST",
         "path": path,
+        "scheme": "http",
+        "server": ("inspector.local", 80),
+        "root_path": "",
+        "query_string": b"",
         "headers": [
             (k.lower().encode(), v.encode()) for k, v in (headers or {}).items()
         ],
@@ -58,7 +62,9 @@ async def test_correct_key_reaches_mcp(headers):
 async def test_missing_key_is_rejected():
     status, headers, body = await request("/mcp")
     assert status == 401
-    assert headers["www-authenticate"] == "Bearer"
+    assert headers["www-authenticate"] == (
+        'Bearer resource_metadata="http://inspector.local/.well-known/oauth-protected-resource/mcp"'
+    )
     assert json.loads(body) == {"error": {"status": 401, "message": "Missing API key"}}
 
 
@@ -82,7 +88,33 @@ async def test_subpaths_of_mcp_are_protected():
     assert status == 401
 
 
-@pytest.mark.parametrize("path", ["/health", "/ready", "/metrics", "/mcpx"])
+async def test_challenge_uses_public_url():
+    guard = ApiKeyMiddleware(
+        inner_app, api_key=KEY, public_url="https://db.example.com"
+    )
+    sent = []
+
+    async def send(message):
+        sent.append(message)
+
+    scope = {"type": "http", "method": "POST", "path": "/mcp", "headers": []}
+    await guard(scope, None, send)  # type: ignore[arg-type]
+    headers = dict(sent[0]["headers"])
+    assert headers[b"www-authenticate"] == (
+        b'Bearer resource_metadata="https://db.example.com/.well-known/oauth-protected-resource/mcp"'
+    )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/health",
+        "/ready",
+        "/metrics",
+        "/mcpx",
+        "/.well-known/oauth-protected-resource/mcp",
+    ],
+)
 async def test_other_routes_need_no_key(path):
     status, _, _ = await request(path)
     assert status == 200
