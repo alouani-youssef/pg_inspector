@@ -34,7 +34,8 @@ async def ready(_: Request) -> JSONResponse:
     for name, check in readiness_checks.items():
         try:
             results[name] = await check()
-        except Exception:
+        # Checks are arbitrary callables: any failure means "not ready", never a 500.
+        except Exception:  # noqa: BLE001
             results[name] = False
     is_ready = all(results.values())
     return JSONResponse(

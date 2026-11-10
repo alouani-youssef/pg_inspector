@@ -1,3 +1,3 @@
-from src.config.settings import Settings, settings
+from src.config.settings import Settings, Transport, settings
 
-__all__ = ["Settings", "settings"]
+__all__ = ["Settings", "Transport", "settings"]

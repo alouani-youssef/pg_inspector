@@ -29,9 +29,36 @@ Guided workflows that walk the model through the tools and resources above. They
 | `audit_database_security` | none | Roles, privileges, `PUBLIC` grants, `SECURITY DEFINER` functions, RLS and sensitive columns as findings with severity and remediation SQL. Never reads secret values. |
 | `investigate_data_quality` | `table_name` | NULLs, duplicates, orphaned references, unexpected values, inconsistent timestamps and numeric outliers, with counts, masked samples and remediation. |
 
+## Transports
+
+| Transport | Start | Use when |
+| --- | --- | --- |
+| `streamable-http` (default) | `uv run start` | A shared, networked server: MCP at `/mcp` on `HOST:PORT`, API key required, plus `/health`, `/ready`, `/metrics`. |
+| `stdio` | `uv run start --transport stdio` | A local client (Claude Desktop, Claude Code, an IDE) launches the server as a subprocess and talks JSON-RPC over stdin/stdout. |
+
+`--transport` overrides the `TRANSPORT` environment variable. Under stdio, the client owns the
+process, so there is no listener, `API_KEY` is not needed and the HTTP routes are not served.
+All logs (including `DATABASE_ECHO` SQL) go to stderr, because stdout carries the protocol.
+
+Example client config (Claude Desktop `claude_desktop_config.json`, or `.mcp.json` for Claude Code):
+
+```json
+{
+  "mcpServers": {
+    "pg-inspector": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/pg_inspector", "run", "start", "--transport", "stdio"],
+      "env": { "DATABASE_HOST": "127.0.0.1", "DATABASE_USERNAME": "inspector_ro" }
+    }
+  }
+}
+```
+
+Settings still come from `.env` in the project directory and from `env`.
+
 ## Authentication
 
-The MCP endpoint (`/mcp`) requires an API key; `/health`, `/ready` and `/metrics` stay open.
+The HTTP MCP endpoint (`/mcp`) requires an API key; `/health`, `/ready` and `/metrics` stay open.
 Set `API_KEY` in `.env` (at least 16 characters, the server refuses to start otherwise):
 
 ```sh

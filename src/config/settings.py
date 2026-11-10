@@ -1,8 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from sqlalchemy.engine import URL
+
+Transport = Literal["streamable-http", "stdio"]
 
 
 class Settings(BaseSettings):
@@ -13,11 +15,19 @@ class Settings(BaseSettings):
     )
 
     # Application
+    TRANSPORT: Transport = Field(
+        default="streamable-http",
+        description=(
+            "streamable-http serves /mcp over the network (HOST/PORT, API key required); "
+            "stdio talks JSON-RPC over stdin/stdout to the client that launched the process."
+        ),
+    )
     HOST: str = "127.0.0.1"
     PORT: int = 8000
     RELOAD: bool = False
 
-    # Auth: clients must send this key to reach /mcp (the server refuses to start without it).
+    # Auth: clients must send this key to reach /mcp (the HTTP server refuses to start without
+    # it). Not used by the stdio transport.
     API_KEY: SecretStr = SecretStr("")
     PUBLIC_URL: str = Field(
         default="",
