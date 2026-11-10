@@ -38,7 +38,7 @@ async def list_schemas(
             description="Database whose schemas to list (see list_databases). "
             "Defaults to the server's configured database."
         ),
-    ] = 'root',
+    ] = "root",
 ) -> list[SchemaInfo]:
     """List the schemas of a database (default: the configured one)."""
     params = {"include_system": include_system, "system": list(SYSTEM_SCHEMAS)}

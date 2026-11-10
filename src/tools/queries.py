@@ -6,14 +6,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import BaseModel, Field
 
 from src.config import settings
-from src.tools.common import db_connection, require_statement, to_json
-
-QUERY_STATEMENTS = frozenset({"select", "with", "values", "table", "show"})
-# EXPLAIN without ANALYZE never executes the statement, so DML plans are safe to inspect;
-# with ANALYZE the read-only transaction still rejects any write.
-EXPLAIN_STATEMENTS = frozenset(
-    {"select", "with", "values", "table", "insert", "update", "delete", "merge"}
-)
+from src.security import SQLValidationError, validate_explain, validate_query
+from src.tools.common import db_connection, to_json
 
 
 class ResultColumn(BaseModel):
@@ -56,7 +50,10 @@ async def execute_query(
     Runs in a READ ONLY transaction that is always rolled back, under the server's
     statement timeout. Rows are fetched incrementally, so large results are cut at `limit`
     without being fully materialised."""
-    require_statement(sql, QUERY_STATEMENTS)
+    try:
+        sql = validate_query(sql, max_length=settings.QUERY_MAX_LENGTH).sql
+    except SQLValidationError as exc:
+        raise ToolError(f"Query rejected ({exc.code}): {exc}") from exc
     limit = min(limit, settings.QUERY_MAX_ROWS)
 
     async with db_connection() as conn:
@@ -64,7 +61,7 @@ async def execute_query(
         # asyncpg.Connection, already inside our read-only transaction.
         driver = raw.driver_connection
         assert driver is not None
-        stmt = await driver.prepare(sql)  # also rejects multiple statements
+        stmt = await driver.prepare(sql)
         columns = [
             ResultColumn(name=a.name, type=a.type.name) for a in stmt.get_attributes()
         ]
@@ -82,7 +79,7 @@ async def explain_query(
     sql: Annotated[
         str,
         Field(
-            description="The statement to explain (SELECT/WITH/VALUES/TABLE, or DML without analyze)."
+            description="The statement to explain: SELECT/WITH/VALUES/TABLE, or INSERT/UPDATE/DELETE/MERGE when analyze is false."
         ),
     ],
     analyze: Annotated[
@@ -96,7 +93,12 @@ async def explain_query(
     ] = "text",
 ) -> ExplainResult:
     """Show the PostgreSQL execution plan for a statement (EXPLAIN, optionally ANALYZE)."""
-    require_statement(sql, EXPLAIN_STATEMENTS)
+    try:
+        sql = validate_explain(
+            sql, analyze=analyze, max_length=settings.QUERY_MAX_LENGTH
+        ).sql
+    except SQLValidationError as exc:
+        raise ToolError(f"Query rejected ({exc.code}): {exc}") from exc
     options = [f"FORMAT {format.upper()}", "VERBOSE"]
     if analyze:
         options += ["ANALYZE", "BUFFERS"]

@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     QUERY_MAX_ROWS: int = Field(
         default=1000, ge=1, description="Hard cap on rows returned by execute_query."
     )
+    QUERY_MAX_LENGTH: int = Field(
+        default=100_000, ge=1, description="Longest SQL text the tools accept."
+    )
 
     @property
     def database_url(self) -> URL:

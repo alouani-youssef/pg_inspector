@@ -1,8 +1,7 @@
-"""Helpers shared by every tool: annotations, error mapping, SQL guard and JSON conversion."""
+"""Helpers shared by every tool: annotations, error mapping and JSON conversion."""
 
 import datetime as dt
 import math
-import re
 import uuid
 from collections.abc import AsyncIterator, Mapping, Sequence
 from contextlib import asynccontextmanager
@@ -77,30 +76,6 @@ def _pg_message(exc: asyncpg.PostgresError) -> str:
     if hint := getattr(exc, "hint", None):
         parts.append(f"HINT: {hint}")
     return "\n".join(parts)
-
-
-_LEADING_NOISE = re.compile(r"^(?:\s+|--[^\n]*(?:\n|$)|/\*.*?\*/|\()*", re.DOTALL)
-_FIRST_WORD = re.compile(r"[A-Za-z]+")
-
-
-def first_keyword(sql: str) -> str:
-    """The statement's leading keyword, lower-cased, ignoring whitespace, comments and `(`."""
-    rest = _LEADING_NOISE.sub("", sql, count=1)
-    match = _FIRST_WORD.match(rest)
-    return match.group(0).lower() if match else ""
-
-
-def require_statement(sql: str, allowed: frozenset[str]) -> None:
-    """Reject anything whose leading keyword is not in `allowed` (defence in depth on top of
-    the read-only transaction)."""
-    if not sql.strip():
-        raise ToolError("SQL must not be empty.")
-    keyword = first_keyword(sql)
-    if keyword not in allowed:
-        raise ToolError(
-            f"Statement type {keyword.upper() or '?'!r} is not allowed here; "
-            f"allowed: {', '.join(sorted(k.upper() for k in allowed))}."
-        )
 
 
 def to_json(value: Any) -> Any:
