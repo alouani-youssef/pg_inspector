@@ -10,11 +10,12 @@ module-root = ""
 module-name = "src"
 requires-python = ">=3.14"
 dependencies = [
+    "asyncpg>=0.32.0",
     "mcp>=2.3.0",
     "prometheus-client>=0.26.0",
     "pydantic>=2.14.3",
     "pydantic-settings>=2.16.2",
-    "sqlalchemy>=2.1.8",
+    "sqlalchemy[asyncio]>=2.1.8",
     "starlette>=1.10.0",
     "uvicorn>=0.54.0",
 ]

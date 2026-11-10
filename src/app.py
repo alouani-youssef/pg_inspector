@@ -1,10 +1,23 @@
-from collections.abc import Awaitable, Callable
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from mcp.server.mcpserver import MCPServer
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from starlette.exceptions import HTTPException
-from starlette.requests import Request
-from starlette.responses import JSONResponse, Response
+
+from src.database import Database, database
+from src.routes import http_error, readiness_checks, register_routes
+
+
+@asynccontextmanager
+async def lifespan(_: MCPServer) -> AsyncIterator[Database]:
+    """Open the PostgreSQL pool on startup and close it on shutdown.
+    Tools can reach it via `ctx.request_context.lifespan_context`."""
+    await database.connect()
+    try:
+        yield database
+    finally:
+        await database.disconnect()
+
 
 # The MCP Server Meta Data
 mcp = MCPServer(
@@ -13,23 +26,8 @@ mcp = MCPServer(
     description="An MCP server for PostgreSQL database inspection.",
     instructions="Use this server to inspect databases, schemas, tables and execute read-only queries.",
     version="1.0.0",
+    lifespan=lifespan,
 )
-
-# The only non-MCP HTTP routes this server may expose.
-ALLOWED_CUSTOM_ROUTES = frozenset({"/health", "/ready", "/metrics"})
-
-
-def custom_route(path: str, methods: list[str]):
-    """Register a custom HTTP route, rejecting any path outside the allowlist."""
-    if path not in ALLOWED_CUSTOM_ROUTES:
-        raise ValueError(f"Custom route {path!r} is not allowed; allowed: {sorted(ALLOWED_CUSTOM_ROUTES)}")
-    return mcp.custom_route(path, methods=methods, include_in_schema=False)
-
-
-# Readiness checks: async callables returning True when a dependency is usable.
-# Register e.g. a PostgreSQL connectivity check here once the database layer exists.
-ReadinessCheck = Callable[[], Awaitable[bool]]
-readiness_checks: dict[str, ReadinessCheck] = {}
 
 
 @mcp.tool()
@@ -38,49 +36,9 @@ def ping() -> str:
     return "pong"
 
 
-@custom_route("/health", methods=["GET"])
-async def health(_: Request) -> JSONResponse:
-    """Liveness: the process is up and serving HTTP."""
-    return JSONResponse({"status": "ok"})
-
-
-@custom_route("/ready", methods=["GET"])
-async def ready(_: Request) -> JSONResponse:
-    """Readiness: every registered dependency check passes."""
-    results: dict[str, bool] = {}
-    for name, check in readiness_checks.items():
-        try:
-            results[name] = await check()
-        except Exception:
-            results[name] = False
-    is_ready = all(results.values())
-    return JSONResponse(
-        {"status": "ready" if is_ready else "not_ready", "checks": results},
-        status_code=200 if is_ready else 503,
-    )
-
-
-@custom_route("/metrics", methods=["GET"])
-async def metrics(_: Request) -> Response:
-    """Prometheus metrics in text exposition format."""
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-
-async def http_error(request: Request, exc: Exception) -> Response:
-    """Return JSON for unknown routes (404), wrong methods (405) and other HTTP errors."""
-    assert isinstance(exc, HTTPException)
-    if exc.status_code == 404:
-        message = f"Route {request.url.path!r} not found"
-    elif exc.status_code == 405:
-        message = f"Method {request.method} not allowed on {request.url.path!r}"
-    else:
-        message = exc.detail
-    return JSONResponse(
-        {"error": {"status": exc.status_code, "message": message}},
-        status_code=exc.status_code,
-        headers=exc.headers,  # keeps the Allow header on 405
-    )
-
+# Non-MCP HTTP routes: /health, /ready, /metrics.
+register_routes(mcp)
+readiness_checks["postgres"] = database.ping
 
 # Standalone Starlette ASGI app (its lifespan starts the MCP session manager).
 # MCP endpoint is served at /mcp.
