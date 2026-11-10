@@ -1,2 +1,5 @@
-def main() -> None:
-    print("Hello from pg-inspector!")
+from pg_inspector.main import main
+
+__all__ = [
+    "main",
+]

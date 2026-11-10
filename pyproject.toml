@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.scripts]
-pg-inspector = "pg_inspector:main"
+start = "pg_inspector.main:main"
 
 [build-system]
 requires = ["uv_build>=0.12.19,<0.13.0"]
