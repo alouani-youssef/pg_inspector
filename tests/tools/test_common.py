@@ -98,7 +98,9 @@ async def _error_for(monkeypatch, exc: BaseException) -> Exception:
     return info.value
 
 
-def _pg_error(cls: type[asyncpg.PostgresError], message: str, **fields) -> asyncpg.PostgresError:
+def _pg_error(
+    cls: type[asyncpg.PostgresError], message: str, **fields
+) -> asyncpg.PostgresError:
     exc = cls(message)
     for name, value in fields.items():
         setattr(exc, name, value)
@@ -106,7 +108,9 @@ def _pg_error(cls: type[asyncpg.PostgresError], message: str, **fields) -> async
 
 
 async def test_unknown_database_becomes_tool_error(monkeypatch):
-    err = await _error_for(monkeypatch, UnknownDatabaseError("Database 'x' does not exist."))
+    err = await _error_for(
+        monkeypatch, UnknownDatabaseError("Database 'x' does not exist.")
+    )
     assert type(err) is ToolError
     assert str(err) == "Database 'x' does not exist."
 
@@ -140,7 +144,9 @@ async def test_postgres_error_wrapped_by_sqlalchemy_is_unwrapped(monkeypatch):
 
 
 async def test_other_dbapi_error(monkeypatch):
-    err = await _error_for(monkeypatch, DBAPIError("SELECT 1", {}, RuntimeError("boom")))
+    err = await _error_for(
+        monkeypatch, DBAPIError("SELECT 1", {}, RuntimeError("boom"))
+    )
     assert type(err) is ToolError
     assert str(err) == "Database error: boom"
 
@@ -185,7 +191,12 @@ async def test_errors_raised_inside_the_block_are_mapped(monkeypatch):
 async def test_unreachable_server_reports_database_unavailable(monkeypatch):
     # Nothing listens on port 1: a real connection attempt fails fast.
     dead = Database(
-        Settings(_env_file=None, DATABASE_HOST="127.0.0.1", DATABASE_PORT=1, DATABASE_CONNECT_TIMEOUT=2)
+        Settings(
+            _env_file=None,
+            DATABASE_HOST="127.0.0.1",
+            DATABASE_PORT=1,
+            DATABASE_CONNECT_TIMEOUT=2,
+        )
     )
     await dead.connect()  # never raises; readiness reports the outage instead
     monkeypatch.setattr(common, "database", dead)

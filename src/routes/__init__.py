@@ -6,4 +6,10 @@ from src.routes.custom import (
 )
 from src.routes.errors import http_error
 
-__all__ = ["ALLOWED_CUSTOM_ROUTES", "ReadinessCheck", "http_error", "readiness_checks", "register_routes"]
+__all__ = [
+    "ALLOWED_CUSTOM_ROUTES",
+    "ReadinessCheck",
+    "http_error",
+    "readiness_checks",
+    "register_routes",
+]

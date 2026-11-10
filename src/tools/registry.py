@@ -118,11 +118,15 @@ class GroupSummary(BaseModel):
 
 
 class ToolCatalogue(BaseModel):
-    groups: list[GroupSummary] = Field(description="Enabled groups with their tool names.")
+    groups: list[GroupSummary] = Field(
+        description="Enabled groups with their tool names."
+    )
     tools: list[ToolSummary] = Field(description="Tools matching the filters.")
 
 
-def make_discover_tools(exposed: Sequence[ToolSpec]) -> Callable[..., Awaitable[ToolCatalogue]]:
+def make_discover_tools(
+    exposed: Sequence[ToolSpec],
+) -> Callable[..., Awaitable[ToolCatalogue]]:
     """Build the discovery tool over the specs actually exposed by this server."""
 
     async def discover_tools(
@@ -134,7 +138,9 @@ def make_discover_tools(exposed: Sequence[ToolSpec]) -> Callable[..., Awaitable[
         ] = None,
         search: Annotated[
             str | None,
-            Field(description="Case-insensitive text matched against name, title and description."),
+            Field(
+                description="Case-insensitive text matched against name, title and description."
+            ),
         ] = None,
     ) -> ToolCatalogue:
         """List the tools this server exposes, grouped by domain, optionally filtered by group, tag or text."""
@@ -144,7 +150,9 @@ def make_discover_tools(exposed: Sequence[ToolSpec]) -> Callable[..., Awaitable[
             for s in exposed
             if (group is None or s.group == group)
             and (tag is None or tag in s.tags)
-            and (not needle or needle in f"{s.name} {s.title} {s.description}".casefold())
+            and (
+                not needle or needle in f"{s.name} {s.title} {s.description}".casefold()
+            )
         ]
         groups = [
             GroupSummary(

@@ -20,12 +20,38 @@ from src.tools.tables import describe_table, list_tables
 # The full catalogue, in listing order. Exposed name: `<group>_<short name>` (see ToolSpec.name).
 TOOLS: list[ToolSpec] = [
     ToolSpec(ping, "Ping", ToolGroup.SERVER, frozenset({"health"})),
-    ToolSpec(list_databases, "List databases", ToolGroup.CATALOG, frozenset({"database", "list"})),
-    ToolSpec(list_schemas, "List schemas", ToolGroup.CATALOG, frozenset({"schema", "list"})),
-    ToolSpec(list_tables, "List tables", ToolGroup.CATALOG, frozenset({"table", "list"})),
-    ToolSpec(describe_table, "Describe table", ToolGroup.CATALOG, frozenset({"table", "structure"})),
-    ToolSpec(execute_query, "Execute read-only query", ToolGroup.QUERY, frozenset({"sql", "read"}), "execute"),
-    ToolSpec(explain_query, "Explain query plan", ToolGroup.QUERY, frozenset({"sql", "performance"}), "explain"),
+    ToolSpec(
+        list_databases,
+        "List databases",
+        ToolGroup.CATALOG,
+        frozenset({"database", "list"}),
+    ),
+    ToolSpec(
+        list_schemas, "List schemas", ToolGroup.CATALOG, frozenset({"schema", "list"})
+    ),
+    ToolSpec(
+        list_tables, "List tables", ToolGroup.CATALOG, frozenset({"table", "list"})
+    ),
+    ToolSpec(
+        describe_table,
+        "Describe table",
+        ToolGroup.CATALOG,
+        frozenset({"table", "structure"}),
+    ),
+    ToolSpec(
+        execute_query,
+        "Execute read-only query",
+        ToolGroup.QUERY,
+        frozenset({"sql", "read"}),
+        "execute",
+    ),
+    ToolSpec(
+        explain_query,
+        "Explain query plan",
+        ToolGroup.QUERY,
+        frozenset({"sql", "performance"}),
+        "explain",
+    ),
 ]
 
 
@@ -42,7 +68,10 @@ def register_tools(
     # The discovery tool lists itself, so it sees the final list (filled in below).
     catalogue: list[ToolSpec] = []
     discovery = ToolSpec(
-        make_discover_tools(catalogue), "Discover tools", ToolGroup.SERVER, frozenset({"discovery"}),
+        make_discover_tools(catalogue),
+        "Discover tools",
+        ToolGroup.SERVER,
+        frozenset({"discovery"}),
         "discover_tools",
     )
     catalogue.extend([*exposed, discovery])

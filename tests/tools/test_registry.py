@@ -18,7 +18,10 @@ def test_no_filters_selects_everything():
 
 
 def test_group_filter():
-    assert names(select_tools(TOOLS, groups=["query"])) == ["query_execute", "query_explain"]
+    assert names(select_tools(TOOLS, groups=["query"])) == [
+        "query_execute",
+        "query_explain",
+    ]
 
 
 def test_include_adds_tool_outside_enabled_groups():
@@ -80,7 +83,10 @@ async def test_registration_publishes_meta_and_discovery():
         DISCOVERY_TOOL,
     }
     assert tools["catalog_describe_table"].title == "Catalog: Describe table"
-    assert tools["catalog_describe_table"].meta == {META_GROUP: "catalog", META_TAGS: ["structure", "table"]}
+    assert tools["catalog_describe_table"].meta == {
+        META_GROUP: "catalog",
+        META_TAGS: ["structure", "table"],
+    }
     assert tools[DISCOVERY_TOOL].meta[META_GROUP] == "server"
 
 
@@ -94,6 +100,12 @@ async def test_discover_tools_filters():
     assert "server_ping" not in names(full.tools)
     assert all(t.name.startswith(f"{t.group}_") for t in full.tools)
 
-    assert names((await discover(group=ToolGroup.QUERY)).tools) == ["query_execute", "query_explain"]
-    assert names((await discover(tag="table")).tools) == ["catalog_list_tables", "catalog_describe_table"]
+    assert names((await discover(group=ToolGroup.QUERY)).tools) == [
+        "query_execute",
+        "query_explain",
+    ]
+    assert names((await discover(tag="table")).tools) == [
+        "catalog_list_tables",
+        "catalog_describe_table",
+    ]
     assert names((await discover(search="EXECUTION PLAN")).tools) == ["query_explain"]

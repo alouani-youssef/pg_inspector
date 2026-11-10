@@ -24,7 +24,9 @@ async def db() -> AsyncIterator[None]:
     await database.connect()
     try:
         if not await database.ping():
-            pytest.skip("Seeded PostgreSQL is not reachable (run `docker compose up -d db`).")
+            pytest.skip(
+                "Seeded PostgreSQL is not reachable (run `docker compose up -d db`)."
+            )
         yield
     finally:
         await database.disconnect()

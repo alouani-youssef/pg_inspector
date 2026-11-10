@@ -60,12 +60,18 @@ async def test_list_schemas_defaults_to_configured_database():
 async def test_list_schemas_user_schemas_only():
     schemas = {s.name: s for s in await list_schemas(database=settings.DATABASE_DB)}
     assert list(schemas) == USER_SCHEMAS
-    assert schemas["public"].comment == "pg_inspector seed: e-commerce tables, reporting views and audit log"
+    assert (
+        schemas["public"].comment
+        == "pg_inspector seed: e-commerce tables, reporting views and audit log"
+    )
     assert schemas["crm"].comment.startswith("pg_inspector mocks:")
 
 
 async def test_list_schemas_include_system():
-    names = {s.name for s in await list_schemas(include_system=True, database=settings.DATABASE_DB)}
+    names = {
+        s.name
+        for s in await list_schemas(include_system=True, database=settings.DATABASE_DB)
+    }
     assert {"public", "pg_catalog", "information_schema", "pg_toast"} <= names
 
 
@@ -85,7 +91,9 @@ async def test_list_schemas_rejects_unknown_or_unconnectable_database(name):
 
 async def test_list_tables_returns_every_relation_with_its_kind():
     tables = await list_tables()
-    assert {t.schema_name for t in tables} == set(USER_SCHEMAS)  # extensions: pg_stat_statements views
+    assert {t.schema_name for t in tables} == set(
+        USER_SCHEMAS
+    )  # extensions: pg_stat_statements views
     keys = [(t.schema_name, t.name) for t in tables]
     assert keys == sorted(keys)
 
@@ -104,7 +112,9 @@ async def test_list_tables_estimates_and_sizes():
     assert tables["orders"].estimated_rows == 2000
     assert tables["order_items"].estimated_rows == 4001
     assert tables["customers"].total_size_bytes > 0
-    assert tables["active_products"].total_size_bytes == 0  # plain views have no storage
+    assert (
+        tables["active_products"].total_size_bytes == 0
+    )  # plain views have no storage
     assert tables["customers"].comment == "Registered shoppers"
     assert tables["reviews"].comment is None
 
@@ -166,7 +176,10 @@ async def test_describe_customers_constraints_indexes_and_references():
         "customers_lower_last_idx",
         "customers_preferences_gin",
     }
-    assert indexes["customers_email_key"].is_unique and not indexes["customers_email_key"].is_primary
+    assert (
+        indexes["customers_email_key"].is_unique
+        and not indexes["customers_email_key"].is_primary
+    )
     assert "USING gin (preferences)" in indexes["customers_preferences_gin"].definition
     assert all(i.is_valid and i.size_bytes > 0 for i in t.indexes)
 
@@ -205,7 +218,9 @@ async def test_describe_composite_primary_key_and_generated_column():
     pk = next(c for c in t.constraints if c.type == "primary key")
     assert pk.definition == "PRIMARY KEY (order_id, line_no)"
     cols = {c.name: c for c in t.columns}
-    assert cols["line_total"].generated == "((quantity)::numeric * (unit_price)::numeric)"
+    assert (
+        cols["line_total"].generated == "((quantity)::numeric * (unit_price)::numeric)"
+    )
     assert {c.name for c in t.constraints if c.type == "foreign key"} == {
         "order_items_order_id_fkey",
         "order_items_product_id_fkey",
@@ -226,7 +241,14 @@ async def test_describe_empty_table():
 async def test_describe_view():
     t = await describe_table("active_products")
     assert t.kind == "view"
-    assert [c.name for c in t.columns] == ["id", "sku", "name", "category", "price", "stock"]
+    assert [c.name for c in t.columns] == [
+        "id",
+        "sku",
+        "name",
+        "category",
+        "price",
+        "stock",
+    ]
     assert t.view_definition is not None and "NOT p.discontinued" in t.view_definition
     assert t.constraints == [] and t.indexes == [] and t.triggers == []
 

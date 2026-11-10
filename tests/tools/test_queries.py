@@ -29,7 +29,10 @@ from src.tools.queries import execute_query, explain_query
         ("INSERT INTO coupons VALUES ('X', 10, NULL)", "statement_not_allowed"),
         ("DROP TABLE customers", "statement_not_allowed"),
         ("SET statement_timeout = 0", "statement_not_allowed"),
-        ("WITH d AS (DELETE FROM orders RETURNING *) SELECT * FROM d", "data_modifying_cte"),
+        (
+            "WITH d AS (DELETE FROM orders RETURNING *) SELECT * FROM d",
+            "data_modifying_cte",
+        ),
         ("SELECT pg_sleep(10)", "function_not_allowed"),
         ("SELECT set_config('search_path', 'x', false)", "function_not_allowed"),
         ("SELECT * FROM pg_authid", "relation_not_allowed"),
@@ -45,14 +48,20 @@ async def test_execute_query_rejects(sql, code):
 
 async def test_execute_query_rejects_sql_over_the_configured_length(monkeypatch):
     monkeypatch.setattr(settings, "QUERY_MAX_LENGTH", 10)
-    with pytest.raises(ToolError, match=r"^Query rejected \(too_long\): SQL is 15 characters"):
+    with pytest.raises(
+        ToolError, match=r"^Query rejected \(too_long\): SQL is 15 characters"
+    ):
         await execute_query("SELECT 1 + 1000")
 
 
 @pytest.mark.parametrize(
     ("sql", "analyze", "code"),
     [
-        ("DELETE FROM orders", True, "statement_not_allowed"),  # ANALYZE would really delete
+        (
+            "DELETE FROM orders",
+            True,
+            "statement_not_allowed",
+        ),  # ANALYZE would really delete
         ("UPDATE products SET price = 0", True, "statement_not_allowed"),
         ("SHOW work_mem", False, "statement_not_allowed"),
         ("CREATE TABLE x (id int)", False, "statement_not_allowed"),
@@ -80,7 +89,9 @@ async def test_count_is_exact():
 
 @db
 async def test_aggregates_match_seed():
-    r = await execute_query("SELECT status::text, count(*) FROM orders GROUP BY 1 ORDER BY 1")
+    r = await execute_query(
+        "SELECT status::text, count(*) FROM orders GROUP BY 1 ORDER BY 1"
+    )
     assert r.rows == [
         ["cancelled", 400],
         ["delivered", 400],
@@ -134,7 +145,10 @@ async def test_empty_result_still_describes_columns():
 
 @db
 async def test_values_table_and_show_are_supported():
-    assert (await execute_query("VALUES (1, 'a'), (2, 'b')")).rows == [[1, "a"], [2, "b"]]
+    assert (await execute_query("VALUES (1, 'a'), (2, 'b')")).rows == [
+        [1, "a"],
+        [2, "b"],
+    ]
     assert (await execute_query("TABLE countries", limit=1)).row_count == 1
     show = await execute_query("SHOW transaction_read_only")
     assert show.rows == [["on"]]
@@ -153,7 +167,10 @@ async def test_postgres_types_are_json_safe():
     row = dict(zip([c.name for c in r.columns], r.rows[0], strict=True))
     assert row["price"] == "17.50"  # numeric keeps its exact text
     assert row["tags"] == ["bestseller"]
-    assert row["attributes"] == {"color": "white", "weight_g": 100}  # jsonb decoded, not text
+    assert row["attributes"] == {
+        "color": "white",
+        "weight_g": 100,
+    }  # jsonb decoded, not text
     assert row["created_at"] == "2024-06-02T00:00:00+00:00"
     assert row["payment_id"] == str(uuid.UUID(hashlib.md5(b"payment-1").hexdigest()))
     assert row["span"] == "P2D"
@@ -170,7 +187,10 @@ async def test_postgres_types_are_json_safe():
     ("sql", "prefix"),
     [
         ("SELECT 1/0", "22012: division by zero"),
-        ("SELECT * FROM missing_table", '42P01: relation "missing_table" does not exist'),
+        (
+            "SELECT * FROM missing_table",
+            '42P01: relation "missing_table" does not exist',
+        ),
         ("SELECT nme FROM customers", '42703: column "nme" does not exist'),
         ("SELECT 'abc'::int", "22P02: invalid input syntax for type integer"),
         ("SELECT id FROM orders o JOIN customers c USING (id) WHERE x", "42703"),
@@ -191,7 +211,9 @@ async def test_error_hint_is_forwarded():
 
 @db
 async def test_connection_is_healthy_after_an_error():
-    for _ in range(settings.DATABASE_POOL_SIZE + 2):  # cycle through every pooled connection
+    for _ in range(
+        settings.DATABASE_POOL_SIZE + 2
+    ):  # cycle through every pooled connection
         with pytest.raises(ToolError):
             await execute_query("SELECT 1/0")
         assert (await execute_query("SELECT 1")).rows == [[1]]
@@ -200,7 +222,9 @@ async def test_connection_is_healthy_after_an_error():
 @db
 async def test_session_refuses_writes_even_if_one_slipped_past_validation():
     # The validator cannot see inside user functions; the READ ONLY transaction is the backstop.
-    with pytest.raises(ToolError, match="^25006: cannot execute INSERT in a read-only transaction"):
+    with pytest.raises(
+        ToolError, match="^25006: cannot execute INSERT in a read-only transaction"
+    ):
         async with db_connection() as conn:
             await conn.execute(text("INSERT INTO coupons VALUES ('X', 10, NULL)"))
     assert (await execute_query("SELECT count(*) FROM coupons")).rows == [[0]]
@@ -211,7 +235,9 @@ async def test_statement_timeout_is_enforced(monkeypatch):
     await database.disconnect()
     monkeypatch.setattr(settings, "DATABASE_STATEMENT_TIMEOUT_MS", 100)
     await database.connect()
-    with pytest.raises(ToolError, match="^57014: canceling statement due to statement timeout"):
+    with pytest.raises(
+        ToolError, match="^57014: canceling statement due to statement timeout"
+    ):
         await execute_query("SELECT count(*) FROM generate_series(1, 100000000)")
 
 
@@ -241,7 +267,9 @@ async def test_explain_json():
 
 @db
 async def test_explain_analyze_reports_actual_rows():
-    r = await explain_query("SELECT * FROM orders WHERE customer_id = 1", analyze=True, format="json")
+    r = await explain_query(
+        "SELECT * FROM orders WHERE customer_id = 1", analyze=True, format="json"
+    )
     assert r.analyzed is True
     plan = r.plan if isinstance(r.plan, list) else json.loads(r.plan)
     assert plan[0]["Plan"]["Actual Rows"] == 10

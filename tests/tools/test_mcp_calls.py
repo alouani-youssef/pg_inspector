@@ -66,8 +66,16 @@ async def test_input_schemas(mcp):
     ("tool", "arguments", "message"),
     [
         ("query_execute", {}, "sql"),
-        ("query_execute", {"sql": "SELECT 1", "limit": 0}, "greater than or equal to 1"),
-        ("query_execute", {"sql": "SELECT 1", "limit": -5}, "greater than or equal to 1"),
+        (
+            "query_execute",
+            {"sql": "SELECT 1", "limit": 0},
+            "greater than or equal to 1",
+        ),
+        (
+            "query_execute",
+            {"sql": "SELECT 1", "limit": -5},
+            "greater than or equal to 1",
+        ),
         ("query_execute", {"sql": "SELECT 1", "limit": "lots"}, "valid integer"),
         ("query_execute", {"sql": None}, "valid string"),
         ("query_explain", {"sql": "SELECT 1", "format": "xml"}, "'text' or 'json'"),
@@ -77,12 +85,17 @@ async def test_input_schemas(mcp):
         (DISCOVERY_TOOL, {"group": "admin"}, "server"),
     ],
 )
-async def test_invalid_arguments_are_rejected_before_running(mcp, tool, arguments, message):
+async def test_invalid_arguments_are_rejected_before_running(
+    mcp, tool, arguments, message
+):
     assert message in await call_error(mcp, tool, **arguments)
 
 
 async def test_unknown_tool(mcp):
-    assert await call_error(mcp, "query_drop_everything") == "Unknown tool: query_drop_everything"
+    assert (
+        await call_error(mcp, "query_drop_everything")
+        == "Unknown tool: query_drop_everything"
+    )
 
 
 async def test_ping(mcp):
@@ -115,17 +128,25 @@ async def test_catalog_tools_end_to_end(mcp):
     t = await call(mcp, "catalog_describe_table", table="orders")
     assert t["kind"] == "table"
     assert [c["name"] for c in t["columns"]][:3] == ["id", "customer_id", "status"]
-    assert next(c for c in t["columns"] if c["name"] == "status")["type"] == "order_status"
+    assert (
+        next(c for c in t["columns"] if c["name"] == "status")["type"] == "order_status"
+    )
     assert "orders_shipped_after_placed" in {c["name"] for c in t["constraints"]}
 
 
 @db
 async def test_query_tools_end_to_end(mcp):
-    out = await call(mcp, "query_execute", sql="SELECT sum(amount) FROM payments WHERE order_id <= 10")
+    out = await call(
+        mcp,
+        "query_execute",
+        sql="SELECT sum(amount) FROM payments WHERE order_id <= 10",
+    )
     assert out["truncated"] is False and out["row_count"] == 1
     assert isinstance(out["rows"][0][0], str)  # numeric stays exact
 
-    plan = await call(mcp, "query_explain", sql="SELECT * FROM countries", format="json")
+    plan = await call(
+        mcp, "query_explain", sql="SELECT * FROM countries", format="json"
+    )
     assert plan["format"] == "json" and plan["analyzed"] is False
 
 
@@ -134,10 +155,24 @@ async def test_query_tools_end_to_end(mcp):
     ("tool", "arguments", "expected"),
     [
         ("query_execute", {"sql": "SELECT 1/0"}, "22012: division by zero"),
-        ("query_explain", {"sql": "SELECT * FROM nope"}, '42P01: relation "nope" does not exist'),
-        ("catalog_describe_table", {"table": "nope"}, "Relation public.nope not found."),
-        ("catalog_list_schemas", {"database": "nope"}, "Database 'nope' does not exist."),
+        (
+            "query_explain",
+            {"sql": "SELECT * FROM nope"},
+            '42P01: relation "nope" does not exist',
+        ),
+        (
+            "catalog_describe_table",
+            {"table": "nope"},
+            "Relation public.nope not found.",
+        ),
+        (
+            "catalog_list_schemas",
+            {"database": "nope"},
+            "Database 'nope' does not exist.",
+        ),
     ],
 )
-async def test_database_failures_are_tool_errors_not_crashes(mcp, tool, arguments, expected):
+async def test_database_failures_are_tool_errors_not_crashes(
+    mcp, tool, arguments, expected
+):
     assert expected in await call_error(mcp, tool, **arguments)
