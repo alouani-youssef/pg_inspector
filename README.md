@@ -17,6 +17,18 @@ Light weight PostgreSql Mcp server. It provides the ability to connect to a Post
 | `pg-inspector://database/dictionary` | Semantic data dictionary: every table and view with comments, columns (type, nullability, default, comment, enum values, the column a foreign key points to), primary/unique keys, checks, `foreign_keys` / `referenced_by` join paths, plus enum and domain types. Capped at 500 relations (`truncated`). |
 | `pg-inspector://database/health` | Health snapshot: `status` + plain-language `warnings`, connection usage by state, cache hit and rollback ratios, long-running (>5 min) and blocked sessions, transaction ID wraparound, vacuum backlog, invalid and unused indexes. |
 
+## Prompts
+
+Guided workflows that walk the model through the tools and resources above. They are read-only, and if an operator has filtered out a tool they reference, they tell the model to fall back to `server_discover_tools`.
+
+| Prompt | Arguments | Produces |
+| --- | --- | --- |
+| `explore_database` | `schema_name`?, `table_name`? | Architecture report: schemas, keys, relationship graph (Mermaid ER diagram), indexes, structural issues. |
+| `generate_sql_query` | `business_question` | A SELECT built from the discovered schema, checked with `query_execute` / `query_explain`, with an explanation, assumptions, a sensitive-data check and performance notes. |
+| `investigate_database_performance` | `table_name`?, `query`? | Missing indexes, sequential scans, bloat, connection pressure, lock contention, plan analysis. Each recommendation comes with evidence, benefit and trade-offs. |
+| `audit_database_security` | none | Roles, privileges, `PUBLIC` grants, `SECURITY DEFINER` functions, RLS and sensitive columns as findings with severity and remediation SQL. Never reads secret values. |
+| `investigate_data_quality` | `table_name` | NULLs, duplicates, orphaned references, unexpected values, inconsistent timestamps and numeric outliers, with counts, masked samples and remediation. |
+
 ## Authentication
 
 The MCP endpoint (`/mcp`) requires an API key; `/health`, `/ready` and `/metrics` stay open.

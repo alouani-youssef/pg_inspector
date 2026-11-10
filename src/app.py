@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException
 from src.auth import PROTECTED_PATH, ApiKeyMiddleware, validate_api_key
 from src.config import settings
 from src.database import Database, database
+from src.prompts import register_prompts
 from src.resources import register_resources
 from src.routes import http_error, readiness_checks, register_routes
 from src.tools import register_tools
@@ -34,7 +35,9 @@ mcp = MCPServer(
         "Resources: read pg-inspector://database/overview first (version, size, per-schema "
         "object counts, extensions, largest tables); pg-inspector://database/dictionary before "
         "writing SQL (columns, comments, enum values, keys and join paths); and "
-        "pg-inspector://database/health to check connections, locks, vacuum and wraparound."
+        "pg-inspector://database/health to check connections, locks, vacuum and wraparound. "
+        "Prompts provide guided workflows: explore_database, generate_sql_query, "
+        "investigate_database_performance, audit_database_security, investigate_data_quality."
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -51,6 +54,9 @@ register_tools(
 
 # Read-only resources: database overview, semantic dictionary, health snapshot.
 register_resources(mcp)
+
+# Guided workflows: exploration, SQL generation, performance, security and data quality.
+register_prompts(mcp)
 
 # Non-MCP HTTP routes: /health, /ready, /metrics and the OAuth protected-resource metadata.
 register_routes(mcp)
