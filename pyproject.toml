@@ -38,3 +38,7 @@ dev = [
 [tool.uv.build-backend]
 module-root = ""
 module-name = "src"
+
+[[tool.mypy.overrides]]
+module = ["asyncpg", "asyncpg.*"]
+ignore_missing_imports = true

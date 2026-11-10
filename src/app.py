@@ -6,7 +6,7 @@ from starlette.exceptions import HTTPException
 
 from src.database import Database, database
 from src.routes import http_error, readiness_checks, register_routes
-
+from src.tools import register_tools
 
 @asynccontextmanager
 async def lifespan(_: MCPServer) -> AsyncIterator[Database]:
@@ -35,6 +35,9 @@ def ping() -> str:
     """Health check tool."""
     return "pong"
 
+
+# Inspector tools: catalog browsing and read-only queries.
+register_tools(mcp)
 
 # Non-MCP HTTP routes: /health, /ready, /metrics.
 register_routes(mcp)

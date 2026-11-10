@@ -40,6 +40,11 @@ class Settings(BaseSettings):
     )
     DATABASE_ECHO: bool = False
 
+    # Tools
+    QUERY_MAX_ROWS: int = Field(
+        default=1000, ge=1, description="Hard cap on rows returned by execute_query."
+    )
+
     @property
     def database_url(self) -> URL:
         """SQLAlchemy URL for the async asyncpg driver (password is escaped, never logged)."""
