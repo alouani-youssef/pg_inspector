@@ -7,6 +7,7 @@ from starlette.exceptions import HTTPException
 from src.auth import PROTECTED_PATH, ApiKeyMiddleware, validate_api_key
 from src.config import settings
 from src.database import Database, database
+from src.resources import register_resources
 from src.routes import http_error, readiness_checks, register_routes
 from src.tools import register_tools
 
@@ -29,7 +30,11 @@ mcp = MCPServer(
     instructions=(
         "Use this server to inspect databases, schemas, tables and execute read-only queries. "
         "Tool names are prefixed by domain (server_, catalog_, query_); "
-        "call server_discover_tools to browse them by group, tag or keyword."
+        "call server_discover_tools to browse them by group, tag or keyword. "
+        "Resources: read pg-inspector://database/overview first (version, size, per-schema "
+        "object counts, extensions, largest tables); pg-inspector://database/dictionary before "
+        "writing SQL (columns, comments, enum values, keys and join paths); and "
+        "pg-inspector://database/health to check connections, locks, vacuum and wraparound."
     ),
     version="1.0.0",
     lifespan=lifespan,
@@ -43,6 +48,9 @@ register_tools(
     include=settings.TOOLS_INCLUDE,
     exclude=settings.TOOLS_EXCLUDE,
 )
+
+# Read-only resources: database overview, semantic dictionary, health snapshot.
+register_resources(mcp)
 
 # Non-MCP HTTP routes: /health, /ready, /metrics and the OAuth protected-resource metadata.
 register_routes(mcp)

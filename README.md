@@ -9,6 +9,14 @@ Light weight PostgreSql Mcp server. It provides the ability to connect to a Post
 - Execute read-only SQL.
 - Explain query execution plans.
 
+## Resources
+
+| URI | Content |
+| --- | --- |
+| `pg-inspector://database/overview` | JSON snapshot of the configured database: server version, size, encoding, connections, per-schema object counts (tables, views, sequences, functions, types), extensions and the 10 largest tables. |
+| `pg-inspector://database/dictionary` | Semantic data dictionary: every table and view with comments, columns (type, nullability, default, comment, enum values, the column a foreign key points to), primary/unique keys, checks, `foreign_keys` / `referenced_by` join paths, plus enum and domain types. Capped at 500 relations (`truncated`). |
+| `pg-inspector://database/health` | Health snapshot: `status` + plain-language `warnings`, connection usage by state, cache hit and rollback ratios, long-running (>5 min) and blocked sessions, transaction ID wraparound, vacuum backlog, invalid and unused indexes. |
+
 ## Authentication
 
 The MCP endpoint (`/mcp`) requires an API key; `/health`, `/ready` and `/metrics` stay open.
