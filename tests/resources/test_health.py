@@ -200,8 +200,16 @@ async def test_snapshot_of_the_seeded_database(mcp):
 
     assert 0 <= out["activity"]["cache_hit_ratio"] <= 1
     assert out["wraparound"]["xid_age"] > 0
-    assert out["blocked"] == [] and out["invalid_indexes"] == []
+    assert out["blocked"] == []
     assert all(i["table_name"] for i in out["unused_indexes"])
+
+    # Problems planted by data/mocks/40_analytics_performance.sql.
+    assert [(i["schema_name"], i["index_name"]) for i in out["invalid_indexes"]] == [
+        ("analytics", "events_session_id_key")
+    ]
+    assert any("analytics.events_session_id_key" in w for w in out["warnings"])
+    assert any("analytics.page_views has 60% dead tuples" in w for w in out["warnings"])
+    assert out["status"] == "warning"
 
 
 @pytest.mark.usefixtures("db")

@@ -13,6 +13,10 @@ from mcp.server.mcpserver import MCPServer
 from src.database import database
 from src.tools import register_tools
 
+# User schemas in the seeded database: `public` (data/db_init.sql) plus the scenario mocks
+# (data/mocks/*.sql), sorted by name as the tools list them.
+USER_SCHEMAS = ["analytics", "crm", "extensions", "hr", "public"]
+
 
 @pytest.fixture
 async def db() -> AsyncIterator[None]:

@@ -19,7 +19,7 @@ async def relations(mcp) -> dict[str, dict]:
 
 async def test_every_user_relation_is_described(mcp):
     rels = await relations(mcp)
-    assert len(rels) == 13
+    assert len([k for k in rels if k.startswith("public.")]) == 13
     assert rels["public.active_products"]["kind"] == "view"
     assert rels["public.monthly_revenue"]["kind"] == "materialized view"
     assert rels["public.countries"]["comment"] == "ISO-3166 alpha-2 countries"
@@ -82,9 +82,9 @@ async def test_truncated_past_the_relation_cap(mcp, monkeypatch):
     monkeypatch.setattr(dictionary, "MAX_RELATIONS", 2)
     out = await read_json(mcp, DICTIONARY_URI)
     assert out["truncated"] is True
-    assert [r["name"] for r in out["relations"]] == ["active_products", "categories"]
-    # Foreign keys from relations that were cut are not reported as incoming join paths.
-    assert all(
-        r["from_table"] == "public.categories"
-        for r in out["relations"][1]["referenced_by"]
-    )
+    # Relations are ordered by schema then name: the first two are in `analytics`.
+    assert [r["name"] for r in out["relations"]] == ["daily_metrics", "events"]
+    # Foreign keys from relations that were cut are not reported as incoming join paths:
+    # analytics.events references analytics.sessions, which was cut.
+    assert out["relations"][1]["foreign_keys"]
+    assert all(r["referenced_by"] == [] for r in out["relations"])

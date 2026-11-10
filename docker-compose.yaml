@@ -8,12 +8,22 @@ services:
       POSTGRES_USER: ${DATABASE_USERNAME:?DATABASE_USERNAME must be set in .env}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?DATABASE_PASSWORD must be set in .env}
       POSTGRES_DB: ${DATABASE_DB:?DATABASE_DB must be set in .env}
+    # pg_stat_statements (installed by data/mocks/10_extensions.sql) must be preloaded.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - pg_stat_statements.track=all
     ports:
       - "${DATABASE_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql
-      # Runs only when the pgdata volume is empty; re-seed with `docker compose down -v`.
+      # Run only when the pgdata volume is empty; re-seed with `uv run test --reseed`.
       - ./data/db_init.sql:/docker-entrypoint-initdb.d/01_db_init.sql:ro
+      # Scenario mocks, loaded after the seed by data/mocks/load.sql.
+      - ./data/mocks:/mocks:ro
+      - ./data/mocks/load.sql:/docker-entrypoint-initdb.d/02_mocks.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s

@@ -52,6 +52,29 @@ No authorization server is advertised: the bearer token is the static API key. S
 `PUBLIC_URL` (e.g. `https://inspector.example.com`) when running behind a proxy; otherwise
 URLs are derived from each request's scheme and `Host`.
 
+## Mock data
+
+`docker compose` seeds the `app` database with `data/db_init.sql` (a clean e-commerce
+schema in `public`), then loads scenario mocks from `data/mocks/` (listed in
+`data/mocks/load.sql`). Each mock gives the tools, resources and prompts real things to find.
+Expected counts are documented at the bottom of each file.
+
+| File | Schema | Scenario |
+| --- | --- | --- |
+| `10_extensions.sql` | `extensions` | `pg_stat_statements`, `pg_trgm`, `citext`, plus the `search_path` that resolves them unqualified |
+| `20_hr_security.sql` | `hr` + roles | `audit_database_security`: PII readable by `PUBLIC`, an unsafe `SECURITY DEFINER` function, over-privileged and expired roles, `WITH GRANT OPTION`, row-level security, and `inspector_ro`, a least-privilege role to run this server as |
+| `30_crm_quality.sql` | `crm` | `investigate_data_quality`: orphans (no foreign keys), NULLs, case and whitespace duplicates, off-vocabulary values, impossible timestamps, negative and outlier amounts, a table with no primary key |
+| `40_analytics_performance.sql` | `analytics` | `investigate_database_performance` and the health resource: 200k events whose foreign key has only an **invalid** index (sequential scans), duplicate and overlapping indexes, 60% dead tuples, partitioning, `pg_stat_statements` history |
+
+Mocks only run on the first start of an empty volume. After changing them, run
+`uv run test --reseed` (this deletes the database's data).
+
+Live session problems can't be seeded, so `uv run mock-activity` creates them. It holds
+a session *idle in transaction* on a row lock, a second session *blocked* behind it, and a
+*long-running* query, for `--seconds` (default 360, past the health resource's 300s
+threshold). Everything is rolled back, so no data changes. It connects as `DATABASE_USERNAME`,
+which needs `UPDATE` on `crm.accounts`.
+
 ## Running tests
 
 Tests use `pytest`. Integration tests run against the seeded PostgreSQL from

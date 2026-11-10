@@ -7,6 +7,7 @@ from src.config import settings
 from src.tools.databases import list_databases
 from src.tools.schemas import list_schemas
 from src.tools.tables import describe_table, list_tables
+from tests.tools.conftest import USER_SCHEMAS
 
 pytestmark = pytest.mark.usefixtures("db")
 
@@ -53,13 +54,14 @@ async def test_list_databases_is_sorted():
 async def test_list_schemas_defaults_to_configured_database():
     # The tool documents "Defaults to the server's configured database".
     schemas = await list_schemas()
-    assert [s.name for s in schemas] == ["public"]
+    assert [s.name for s in schemas] == USER_SCHEMAS
 
 
 async def test_list_schemas_user_schemas_only():
-    schemas = await list_schemas(database=settings.DATABASE_DB)
-    assert [s.name for s in schemas] == ["public"]
-    assert schemas[0].comment == "pg_inspector seed: e-commerce tables, reporting views and audit log"
+    schemas = {s.name: s for s in await list_schemas(database=settings.DATABASE_DB)}
+    assert list(schemas) == USER_SCHEMAS
+    assert schemas["public"].comment == "pg_inspector seed: e-commerce tables, reporting views and audit log"
+    assert schemas["crm"].comment.startswith("pg_inspector mocks:")
 
 
 async def test_list_schemas_include_system():
@@ -83,13 +85,15 @@ async def test_list_schemas_rejects_unknown_or_unconnectable_database(name):
 
 async def test_list_tables_returns_every_relation_with_its_kind():
     tables = await list_tables()
+    assert {t.schema_name for t in tables} == set(USER_SCHEMAS)  # extensions: pg_stat_statements views
+    keys = [(t.schema_name, t.name) for t in tables]
+    assert keys == sorted(keys)
+
     by_kind: dict[str, set[str]] = {}
     for t in tables:
-        assert t.schema_name == "public"
-        by_kind.setdefault(t.kind, set()).add(t.name)
-
+        if t.schema_name == "public":
+            by_kind.setdefault(t.kind, set()).add(t.name)
     assert by_kind == {"table": TABLES, "view": VIEWS, "materialized view": MATVIEWS}
-    assert [t.name for t in tables] == sorted(t.name for t in tables)
 
 
 async def test_list_tables_estimates_and_sizes():
