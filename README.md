@@ -9,6 +9,18 @@ Light weight PostgreSql Mcp server. It provides the ability to connect to a Post
 - Execute read-only SQL.
 - Explain query execution plans.
 
+## Authentication
+
+The MCP endpoint (`/mcp`) requires an API key; `/health`, `/ready` and `/metrics` stay open.
+Set `API_KEY` in `.env` (at least 16 characters, the server refuses to start otherwise):
+
+```sh
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Clients send it as `Authorization: Bearer <key>` (or `X-API-Key: <key>`). A missing or wrong
+key gets `401` with `{"error": {"status": 401, "message": "..."}}`.
+
 ## Running tests
 
 Tests use `pytest`. Integration tests run against the seeded PostgreSQL from

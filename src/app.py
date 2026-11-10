@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from mcp.server.mcpserver import MCPServer
 from starlette.exceptions import HTTPException
 
+from src.auth import ApiKeyMiddleware, validate_api_key
 from src.config import settings
 from src.database import Database, database
 from src.routes import http_error, readiness_checks, register_routes
@@ -51,3 +52,11 @@ readiness_checks["postgres"] = database.ping
 # MCP endpoint is served at /mcp.
 app = mcp.streamable_http_app(streamable_http_path="/mcp")
 app.add_exception_handler(HTTPException, http_error)
+
+# Only /mcp requires the API key; /health, /ready and /metrics stay open.
+app.add_middleware(
+    ApiKeyMiddleware,
+    # Validated here so a missing/short key stops the import, not the first request.
+    api_key=validate_api_key(settings.API_KEY.get_secret_value()),
+    protected_path="/mcp",
+)

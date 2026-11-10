@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     PORT: int = 8000
     RELOAD: bool = False
 
+    # Auth: clients must send this key to reach /mcp (the server refuses to start without it).
+    API_KEY: SecretStr = SecretStr("")
+
     # Database connection
     DATABASE_HOST: str = "127.0.0.1"
     DATABASE_PORT: int = Field(default=5432, ge=1, le=65535)
