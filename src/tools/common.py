@@ -18,8 +18,9 @@ from sqlalchemy.exc import DBAPIError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from src.database import database
+from src.database.connection import UnknownDatabaseError
 
-# Every tool on this server only reads from a closed world (the configured database).
+# Every tool on this server only reads from a closed world (the configured PostgreSQL server).
 READ_ONLY = ToolAnnotations(
     read_only_hint=True,
     destructive_hint=False,
@@ -34,13 +35,16 @@ _TIMEDELTA = TypeAdapter(dt.timedelta)
 
 
 @asynccontextmanager
-async def db_connection() -> AsyncIterator[AsyncConnection]:
-    """A read-only pooled connection; database errors surface to the client as `ToolError`."""
+async def db_connection(db: str | None = None) -> AsyncIterator[AsyncConnection]:
+    """A read-only pooled connection to `db` (default: the configured database); database
+    errors surface to the client as `ToolError`."""
     try:
-        async with database.connection() as conn:
+        async with database.connection(db) as conn:
             yield conn
     except ToolError:
         raise
+    except UnknownDatabaseError as exc:
+        raise ToolError(str(exc)) from exc
     except asyncpg.PostgresError as exc:
         raise ToolError(_pg_message(exc)) from exc
     except DBAPIError as exc:

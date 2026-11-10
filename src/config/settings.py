@@ -48,13 +48,17 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> URL:
         """SQLAlchemy URL for the async asyncpg driver (password is escaped, never logged)."""
+        return self.url_for(self.DATABASE_DB)
+
+    def url_for(self, database: str) -> URL:
+        """Same server and credentials as `database_url`, pointed at another database."""
         return URL.create(
             drivername="postgresql+asyncpg",
             username=self.DATABASE_USERNAME,
             password=self.DATABASE_PASSWORD.get_secret_value() or None,
             host=self.DATABASE_HOST,
             port=self.DATABASE_PORT,
-            database=self.DATABASE_DB,
+            database=database,
         )
 
 

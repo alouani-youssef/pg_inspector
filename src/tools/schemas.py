@@ -32,9 +32,16 @@ async def list_schemas(
             description="Also list pg_catalog, information_schema, pg_toast and pg_temp_*."
         ),
     ] = False,
+    database: Annotated[
+        str,
+        Field(
+            description="Database whose schemas to list (see list_databases). "
+            "Defaults to the server's configured database."
+        ),
+    ] = 'root',
 ) -> list[SchemaInfo]:
-    """List the schemas of the current database."""
+    """List the schemas of a database (default: the configured one)."""
     params = {"include_system": include_system, "system": list(SYSTEM_SCHEMAS)}
-    async with db_connection() as conn:
+    async with db_connection(database) as conn:
         rows = await fetch_all(conn, _LIST_SCHEMAS, params)
     return [SchemaInfo.model_validate(dict(r)) for r in rows]
