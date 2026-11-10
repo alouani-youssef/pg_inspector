@@ -1,5 +1,7 @@
-from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Annotated
+
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 from sqlalchemy.engine import URL
 
 
@@ -42,11 +44,31 @@ class Settings(BaseSettings):
 
     # Tools
     QUERY_MAX_ROWS: int = Field(
-        default=1000, ge=1, description="Hard cap on rows returned by execute_query."
+        default=1000, ge=1, description="Hard cap on rows returned by query_execute."
     )
     QUERY_MAX_LENGTH: int = Field(
         default=100_000, ge=1, description="Longest SQL text the tools accept."
     )
+
+    # Tool filtering (comma-separated lists; empty = no restriction)
+    TOOL_GROUPS: Annotated[list[str], NoDecode] = Field(
+        default_factory=list,
+        description="Domain groups to expose (server, catalog, query). Empty exposes all.",
+    )
+    TOOLS_INCLUDE: Annotated[list[str], NoDecode] = Field(
+        default_factory=list,
+        description="Tools (full names, e.g. query_explain) to expose even when their group is not enabled.",
+    )
+    TOOLS_EXCLUDE: Annotated[list[str], NoDecode] = Field(
+        default_factory=list, description="Tools never exposed."
+    )
+
+    @field_validator("TOOL_GROUPS", "TOOLS_INCLUDE", "TOOLS_EXCLUDE", mode="before")
+    @classmethod
+    def _split_csv(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [v.strip() for v in value.split(",") if v.strip()]
+        return value
 
     @property
     def database_url(self) -> URL:

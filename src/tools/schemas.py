@@ -33,12 +33,12 @@ async def list_schemas(
         ),
     ] = False,
     database: Annotated[
-        str,
+        str | None,
         Field(
-            description="Database whose schemas to list (see list_databases). "
+            description="Database whose schemas to list (see catalog_list_databases). "
             "Defaults to the server's configured database."
         ),
-    ] = "root",
+    ] = None,
 ) -> list[SchemaInfo]:
     """List the schemas of a database (default: the configured one)."""
     params = {"include_system": include_system, "system": list(SYSTEM_SCHEMAS)}

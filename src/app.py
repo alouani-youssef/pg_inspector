@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from mcp.server.mcpserver import MCPServer
 from starlette.exceptions import HTTPException
 
+from src.config import settings
 from src.database import Database, database
 from src.routes import http_error, readiness_checks, register_routes
 from src.tools import register_tools
@@ -24,20 +25,23 @@ mcp = MCPServer(
     name="postgres-inspector",
     title="PostgreSQL Inspector",
     description="An MCP server for PostgreSQL database inspection.",
-    instructions="Use this server to inspect databases, schemas, tables and execute read-only queries.",
+    instructions=(
+        "Use this server to inspect databases, schemas, tables and execute read-only queries. "
+        "Tool names are prefixed by domain (server_, catalog_, query_); "
+        "call server_discover_tools to browse them by group, tag or keyword."
+    ),
     version="1.0.0",
     lifespan=lifespan,
 )
 
 
-@mcp.tool()
-def ping() -> str:
-    """Health check tool."""
-    return "pong"
-
-
-# Inspector tools: catalog browsing and read-only queries.
-register_tools(mcp)
+# Inspector tools grouped by domain, filtered by TOOL_GROUPS / TOOLS_INCLUDE / TOOLS_EXCLUDE.
+register_tools(
+    mcp,
+    groups=settings.TOOL_GROUPS,
+    include=settings.TOOLS_INCLUDE,
+    exclude=settings.TOOLS_EXCLUDE,
+)
 
 # Non-MCP HTTP routes: /health, /ready, /metrics.
 register_routes(mcp)

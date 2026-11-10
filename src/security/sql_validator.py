@@ -164,7 +164,7 @@ DEFAULT_MAX_LENGTH = 100_000
 
 
 def validate_query(sql: str, *, max_length: int = DEFAULT_MAX_LENGTH) -> ValidatedSQL:
-    """Validate SQL for `execute_query`: one SELECT / VALUES / TABLE / WITH or SHOW statement."""
+    """Validate SQL for `query_execute`: one SELECT / VALUES / TABLE / WITH or SHOW statement."""
     return _validate(sql, allowed=_READS, max_length=max_length)
 
 

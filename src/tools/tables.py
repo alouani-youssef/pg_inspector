@@ -233,7 +233,7 @@ async def describe_table(
         head = await fetch_one(conn, _RELATION, {"schema": schema, "table": table})
         if head is None:
             raise ToolError(
-                f"Relation {schema}.{table} not found. Use list_tables to see what exists."
+                f"Relation {schema}.{table} not found. Use catalog_list_tables to see what exists."
             )
         oid = {"oid": head["oid"]}
         columns = await fetch_all(conn, _COLUMNS, oid)
