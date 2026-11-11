@@ -70,6 +70,20 @@ class Settings(BaseSettings):
         default=100_000, ge=1, description="Longest SQL text the tools accept."
     )
 
+    # Debugging
+    DEBUG_LOG_REQUESTS: bool = Field(
+        default=False,
+        description=(
+            "Log every MCP message to stderr: client IP, method, tool/resource/prompt name, "
+            "inputs, result (or error) and duration."
+        ),
+    )
+    DEBUG_LOG_MAX_CHARS: int = Field(
+        default=4000,
+        ge=0,
+        description="Truncate each logged input/result to N characters (0 = no limit).",
+    )
+
     # Tool filtering (comma-separated lists; empty = no restriction)
     TOOL_GROUPS: Annotated[list[str], NoDecode] = Field(
         default_factory=list,

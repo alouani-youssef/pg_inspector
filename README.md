@@ -40,6 +40,11 @@ Guided workflows that walk the model through the tools and resources above. They
 process, so there is no listener, `API_KEY` is not needed and the HTTP routes are not served.
 All logs (including `DATABASE_ECHO` SQL) go to stderr, because stdout carries the protocol.
 
+Set `DEBUG_LOG_REQUESTS=true` to log every MCP call to stderr: client IP (first `X-Forwarded-For`
+hop, else the socket peer; `stdio` under stdio), the tool/resource/prompt invoked, its inputs, the
+result or error, and the duration. Payloads are cut at `DEBUG_LOG_MAX_CHARS` (default 4000, 0 = no
+limit). Headers are never logged.
+
 Example client config (Claude Desktop `claude_desktop_config.json`, or `.mcp.json` for Claude Code):
 
 ```json

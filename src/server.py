@@ -11,6 +11,7 @@ from mcp.server.mcpserver import MCPServer
 
 from src.config import settings
 from src.database import Database, database
+from src.middleware import register_middleware
 from src.prompts import register_prompts
 from src.resources import register_resources
 from src.routes import readiness_checks, register_routes
@@ -48,6 +49,13 @@ mcp = MCPServer(
     lifespan=lifespan,
 )
 
+
+# Debug logging of every call: client IP, tool, inputs, result. Off unless DEBUG_LOG_REQUESTS.
+register_middleware(
+    mcp,
+    log_requests=settings.DEBUG_LOG_REQUESTS,
+    max_chars=settings.DEBUG_LOG_MAX_CHARS,
+)
 
 # Inspector tools grouped by domain, filtered by TOOL_GROUPS / TOOLS_INCLUDE / TOOLS_EXCLUDE.
 register_tools(
